@@ -1,5 +1,8 @@
 [package]
 name = "syn-cfg-attr"
+description = """
+The syn-cfg-attr crate
+"""
 edition = "2024"
 license = "MIT OR Apache-2.0"
 publish = true
