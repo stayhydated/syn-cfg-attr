@@ -17,7 +17,7 @@ pub enum ExpandedAttr {
         attr: Meta,
         condition: TokenStream,
         /// The original top-level `cfg_attr` attribute, kept for span reporting or inspection
-        original: Attribute,
+        original: Box<Attribute>,
     },
 }
 
@@ -32,13 +32,13 @@ impl ExpandedAttr {
                         // For name-value attributes (e.g., `#[key = "value"]`),
                         // we parse the value tokens directly to match standard behavior.
                         syn::parse2(nv.value.to_token_stream())
-                    }
+                    },
                     Meta::Path(_) => Err(syn::Error::new_spanned(
                         attr,
                         "Attribute path has no arguments",
                     )),
                 }
-            }
+            },
         }
     }
 
@@ -118,7 +118,7 @@ fn flatten_attr_recursive(
                         results.push(ExpandedAttr::Nested {
                             attr: nested_meta,
                             condition: condition_stream.clone(),
-                            original: attr.clone(),
+                            original: Box::new(attr.clone()),
                         });
                     }
                 }
@@ -154,7 +154,7 @@ mod tests {
         match &flattened[0] {
             ExpandedAttr::Nested { condition, .. } => {
                 assert_eq!(condition.to_string(), "all ()");
-            }
+            },
             _ => panic!("Expected Nested"),
         }
     }
@@ -169,7 +169,7 @@ mod tests {
         match &flattened[0] {
             ExpandedAttr::Nested { condition, .. } => {
                 assert_eq!(condition.to_string(), "b");
-            }
+            },
             _ => panic!("Expected Nested"),
         }
     }

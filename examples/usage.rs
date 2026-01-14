@@ -1,5 +1,5 @@
 use syn::{Field, parse_quote};
-use syn_cfg_helpers::{AttributeHelpers, ExpandedAttr};
+use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 
 // Mock structures to simulate usage
 struct KorumaAttr {
@@ -34,7 +34,7 @@ fn parse_field(field: &Field) {
                 if let ExpandedAttr::Nested { condition, .. } = &expanded {
                     println!("  - Condition: {}", condition);
                 }
-            }
+            },
             Err(e) => println!("  - Error parsing args: {}", e),
         }
     }
