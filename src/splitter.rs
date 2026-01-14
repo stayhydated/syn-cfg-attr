@@ -34,13 +34,13 @@ impl Iterator for CommaSplitter {
                             let stream =
                                 TokenStream::from_iter(std::mem::take(&mut self.current_buffer));
                             return Some(stream);
-                        }
+                        },
                         TokenTree::Group(_g) => {
                             // Groups (parens, brackets, braces) contain their own token streams.
                             // We treat the entire group as a single token unit at this level,
                             // so we don't need to manually track depth for them.
                             self.current_buffer.push(tt);
-                        }
+                        },
                         TokenTree::Punct(p) => {
                             // Track angle brackets for proper handling of generics like `Type<A, B>`.
                             if p.as_char() == '<' {
@@ -49,12 +49,12 @@ impl Iterator for CommaSplitter {
                                 self.depth -= 1;
                             }
                             self.current_buffer.push(tt);
-                        }
+                        },
                         _ => {
                             self.current_buffer.push(tt);
-                        }
+                        },
                     }
-                }
+                },
                 None => {
                     if !self.current_buffer.is_empty() {
                         let stream =
@@ -63,7 +63,7 @@ impl Iterator for CommaSplitter {
                     } else {
                         return None;
                     }
-                }
+                },
             }
         }
     }
