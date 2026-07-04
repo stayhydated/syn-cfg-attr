@@ -1,47 +1,81 @@
+//! Expand `cfg_attr` entries in `syn` attribute lists.
+//!
+//! `syn-cfg-attr` is for procedural macros and code-generation tools that need
+//! to parse attributes the same way whether they were written directly or inside
+//! `cfg_attr`. It flattens a `Vec<syn::Attribute>` into [`ExpandedAttr`] values
+//! while preserving the `cfg` predicate that guarded each nested attribute.
+//!
+//! # Example
+//!
+//! ```
+//! use syn::{Attribute, parse_quote};
+//! use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
+//!
+//! let attrs: Vec<Attribute> = vec![
+//!     parse_quote!(#[serde(default)]),
+//!     parse_quote!(#[cfg_attr(feature = "json", serde(rename = "id"))]),
+//! ];
+//!
+//! let serde_attrs = attrs.find_attribute("serde");
+//! assert_eq!(serde_attrs.len(), 2);
+//!
+//! for attr in serde_attrs {
+//!     if let ExpandedAttr::Nested { condition, .. } = &attr {
+//!         assert_eq!(condition.to_string(), "feature = \"json\"");
+//!     }
+//! }
+//! ```
+//!
+//! # Behavior
+//!
+//! - Direct attributes are returned as [`ExpandedAttr::Direct`].
+//! - Attributes inside `cfg_attr(condition, ...)` are returned as
+//!   [`ExpandedAttr::Nested`] with their immediate `condition`.
+//! - Nested `cfg_attr` entries are expanded recursively, but nested conditions
+//!   are not combined or evaluated.
+//! - Nested entries that cannot be parsed as [`syn::Meta`] are skipped.
+//! - [`ExpandedAttr::parse_args`] mirrors `syn` list-style attribute parsing for
+//!   both direct and nested attributes.
+
 use proc_macro2::TokenStream;
-use quote::ToTokens;
 use syn::{Attribute, Meta, Path, Result, parse::Parse};
 
 mod splitter;
 use splitter::CommaSplitter;
 
-/// Represents an attribute that might have been extracted from a `#[cfg_attr(...)]`
+/// Represents an attribute that might have been extracted from a `#[cfg_attr(...)]`.
 #[derive(Clone)]
 pub enum ExpandedAttr {
-    /// A standard attribute like `#[foo(...)]`
+    /// A standard attribute written directly on the item, such as `#[foo(...)]`.
     Direct(Attribute),
-    /// An attribute found inside `cfg_attr(condition, ...)`
-    /// `attr` is the parsed Meta of the inner attribute (since it lacks `#[...]` braces in the stream)
-    /// `condition` is the `cfg` condition that guarded it.
+    /// An attribute found inside `cfg_attr(condition, ...)`.
     Nested {
+        /// The parsed meta of the inner attribute, which does not include `#[...]` tokens.
         attr: Meta,
+        /// The immediate `cfg_attr` condition guarding this attribute.
         condition: TokenStream,
-        /// The original top-level `cfg_attr` attribute, kept for span reporting or inspection
+        /// The `cfg_attr` being expanded, kept for span reporting or inspection.
+        ///
+        /// During recursive expansion this can be a synthetic attribute built from a
+        /// nested `cfg_attr` meta item rather than the original outer source attribute.
         original: Box<Attribute>,
     },
 }
 
 impl ExpandedAttr {
+    /// Parses the arguments of a list-style attribute.
+    ///
+    /// Direct attributes use [`Attribute::parse_args`]. Nested `cfg_attr`
+    /// entries parse the tokens inside their `Meta::List`. Path-only and
+    /// name-value attributes return an error.
     pub fn parse_args<T: Parse>(&self) -> Result<T> {
         match self {
             ExpandedAttr::Direct(attr) => attr.parse_args(),
-            ExpandedAttr::Nested { attr, .. } => {
-                match attr {
-                    Meta::List(list) => list.parse_args(),
-                    Meta::NameValue(nv) => {
-                        // For name-value attributes (e.g., `#[key = "value"]`),
-                        // we parse the value tokens directly to match standard behavior.
-                        syn::parse2(nv.value.to_token_stream())
-                    },
-                    Meta::Path(_) => Err(syn::Error::new_spanned(
-                        attr,
-                        "Attribute path has no arguments",
-                    )),
-                }
-            },
+            ExpandedAttr::Nested { attr, .. } => parse_meta_args(attr),
         }
     }
 
+    /// Returns the path that identifies the attribute.
     pub fn path(&self) -> &Path {
         match self {
             ExpandedAttr::Direct(attr) => attr.path(),
@@ -49,9 +83,14 @@ impl ExpandedAttr {
         }
     }
 
+    /// Returns whether the attribute path is a single identifier matching `ident`.
     pub fn is_ident(&self, ident: &str) -> bool {
         self.path().is_ident(ident)
     }
+}
+
+fn parse_meta_args<T: Parse>(meta: &Meta) -> Result<T> {
+    meta.require_list()?.parse_args()
 }
 
 /// Extension trait for working with `Vec<Attribute>` that handles `cfg_attr` expansion.
@@ -60,6 +99,7 @@ pub trait AttributeHelpers {
     ///
     /// This recursively processes nested `cfg_attr` and returns both direct attributes
     /// and attributes found inside `cfg_attr`, wrapped in [`ExpandedAttr`].
+    /// Nested entries that cannot be parsed as [`Meta`] are skipped.
     fn flattened_attributes(&self) -> Vec<ExpandedAttr>;
 
     /// Finds all attributes matching the given identifier, including those inside `cfg_attr`.
@@ -73,7 +113,7 @@ impl AttributeHelpers for Vec<Attribute> {
     fn flattened_attributes(&self) -> Vec<ExpandedAttr> {
         let mut results = Vec::new();
         for attr in self {
-            flatten_attr_recursive(attr, &mut results, None);
+            flatten_attr_recursive(attr, &mut results);
         }
         results
     }
@@ -86,11 +126,7 @@ impl AttributeHelpers for Vec<Attribute> {
     }
 }
 
-fn flatten_attr_recursive(
-    attr: &Attribute,
-    results: &mut Vec<ExpandedAttr>,
-    _inherited_condition: Option<&TokenStream>,
-) {
+fn flatten_attr_recursive(attr: &Attribute, results: &mut Vec<ExpandedAttr>) {
     if attr.path().is_ident("cfg_attr") {
         let tokens = match &attr.meta {
             Meta::List(list) => &list.tokens,
@@ -100,10 +136,6 @@ fn flatten_attr_recursive(
         let mut splitter = CommaSplitter::new(tokens.clone());
 
         if let Some(condition_stream) = splitter.next() {
-            // Note: We currently track the immediate condition.
-            // Future improvements could combine `_inherited_condition` with `condition_stream`
-            // to support AND-ing nested conditions (e.g. `cfg_attr(a, cfg_attr(b, ...))`).
-
             for inner_tokens in splitter {
                 if let Ok(nested_meta) = syn::parse2::<Meta>(inner_tokens.clone()) {
                     if nested_meta.path().is_ident("cfg_attr") {
@@ -113,7 +145,7 @@ fn flatten_attr_recursive(
                             bracket_token: Default::default(),
                             meta: nested_meta,
                         };
-                        flatten_attr_recursive(&synthetic_attr, results, Some(&condition_stream));
+                        flatten_attr_recursive(&synthetic_attr, results);
                     } else {
                         results.push(ExpandedAttr::Nested {
                             attr: nested_meta,
@@ -267,12 +299,14 @@ mod tests {
         assert!(exp2.parse_args::<LitInt>().is_ok());
 
         // 3. Nested NameValue: cfg_attr(..., foo = "bar")
-        // Note: parse_args on NameValue usually errors in standard syn unless we handle it custom.
-        // Our lib implementation handles it by parsing the value.
         let attr3: Attribute = parse_quote!(#[cfg_attr(c, foo = "bar")]);
         let flattened3 = vec![attr3].flattened_attributes();
         let exp3 = &flattened3[0];
-        // Expect parsing a string literal
-        assert!(exp3.parse_args::<syn::LitStr>().is_ok());
+        assert!(exp3.parse_args::<syn::LitStr>().is_err());
+
+        // 4. Direct NameValue: #[foo = "bar"]
+        let attr4: Attribute = parse_quote!(#[foo = "bar"]);
+        let exp4 = ExpandedAttr::Direct(attr4);
+        assert!(exp4.parse_args::<syn::LitStr>().is_err());
     }
 }

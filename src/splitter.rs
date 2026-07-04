@@ -3,8 +3,8 @@ use proc_macro2::{TokenStream, TokenTree};
 /// Splits a TokenStream by top-level commas, respecting recursive depths of
 /// parentheses `()`, brackets `[]`, and braces `{}`.
 ///
-/// This is used to split the arguments of `cfg_attr(condition, attr1, attr2)`
-/// where `attr1` or `attr2` might themselves contain complex tokens.
+/// Splits arguments of `cfg_attr(condition, attr1, attr2)` where `attr1` or
+/// `attr2` might contain complex tokens.
 pub struct CommaSplitter {
     input: std::vec::IntoIter<TokenTree>,
     current_buffer: Vec<TokenTree>,
@@ -142,20 +142,9 @@ mod tests {
 
     #[test]
     fn test_split_only_commas() {
-        // Not a typical use case for valid Rust attributes, but robustness check
         let ts = quote! { , , };
         let splitter = CommaSplitter::new(ts);
         let parts: Vec<String> = splitter.map(|s| s.to_string()).collect();
-        // Depending on implementation, might yield empty streams or nothing.
-        // Current impl yields empty streams if buffer is empty?
-        // Actually, current impl:
-        // if comma matches:
-        //   stream = take(buffer) -> return Some(stream)
-        // So ", ," ->
-        // 1. comma: buffer empty -> yields empty stream
-        // 2. comma: buffer empty -> yields empty stream
-        // 3. None: buffer empty -> returns None
-        // So we expect 2 empty strings
         assert_eq!(parts.len(), 2);
         assert_eq!(parts[0], "");
         assert_eq!(parts[1], "");
