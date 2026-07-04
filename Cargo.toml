@@ -8,10 +8,27 @@ license = "MIT OR Apache-2.0"
 publish = true
 readme = "README.md"
 repository = "https://github.com/stayhydated/syn-cfg-attr"
-rust-version = "1.88"
-version = "0.1.0"
+rust-version = "1.96"
+version = "0.2.0"
 
 [dependencies]
-proc-macro2 = "1.0.0"
-quote = "1.0.0"
+proc-macro2 = "1.0.106"
+quote = "1.0.46"
 syn = { features = [ "full", "extra-traits" ], version = "2.0" }
+
+[workspace.lints.rust]
+unexpected_cfgs = { check-cfg = [ "cfg(coverage)" ], level = "deny" }
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+derive_partial_eq_without_eq = "warn"
+err_expect = "warn"
+incompatible_msrv = "deny"
+iter_on_single_items = "warn"
+needless_bool = "warn"
+redundant_clone = "warn"
+todo = "deny"
+type_complexity = "allow"
+uninlined_format_args = "allow"
+unused_trait_names = "warn"
+useless_conversion = "warn"

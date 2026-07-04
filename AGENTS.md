@@ -13,7 +13,7 @@ Use it to decide:
 For most code changes, start with `src/`.
 
 For usage guidance, start with `README.md` and `examples/usage.rs`.
-There is no standalone architecture document in this workspace.
+For implementation behavior, use `src/` and focused tests.
 
 ## Project Summary
 
@@ -34,7 +34,7 @@ Before editing, classify the change:
 1. **Place documentation by content, not by surface audience.** The README,
    public rustdoc, and example are user-facing. Implementation details belong
    near the code, tests, or concise rustdoc. Contributor conventions belong in
-   `AGENTS.md`, `CONTRIBUTING.md`, or `CLAUDE.md`.
+   `AGENTS.md`.
 1. **Sync public workflow changes.** If API behavior, parsing semantics,
    examples, limitations, or MSRV changes, update the README, example,
    rustdoc, and contributor guidance in the same change when applicable.
@@ -74,9 +74,7 @@ prose-only explanations.
 
 Treat these surfaces as contributor-facing rather than user-facing:
 
-- `AGENTS.md`,
-- `CONTRIBUTING.md`,
-- `CLAUDE.md`.
+- `AGENTS.md`.
 
 Use them for workspace conventions, review expectations, and validation rules.
 Do not use them as substitutes for user docs.
@@ -98,7 +96,7 @@ When a substantive change modifies public API behavior, parsing semantics,
 1. Update `examples/usage.rs` when usage patterns or recommended APIs change.
 1. Update rustdoc when public items or edge cases need clearer API documentation.
 1. Update tests when expansion, parsing, or token-splitting behavior changes.
-1. Update `CONTRIBUTING.md`, `AGENTS.md`, or `CLAUDE.md` when contributor workflow or workspace rules changed.
+1. Update `AGENTS.md` when contributor workflow or workspace rules changed.
 1. Keep these surfaces aligned in the same change unless there is a documented reason not to.
 
 ## Workspace Map
@@ -127,14 +125,6 @@ When a substantive change modifies public API behavior, parsing semantics,
   Audience: **Internal**
   Role: formatting, linting, checking, testing, docs, and publish dry-run workflow.
 
-- `CONTRIBUTING.md`
-  Audience: **Internal**
-  Role: contributor expectations and validation guidance.
-
-- `CLAUDE.md`
-  Audience: **Internal**
-  Role: companion contributor guidance for Claude-based coding agents.
-
 - `AGENTS.md`
   Audience: **Internal**
   Role: workspace map and documentation placement rules for coding agents and contributors.
@@ -157,7 +147,7 @@ When a substantive change modifies public API behavior, parsing semantics,
 - Keep implementation detail close to code, rustdoc, or focused tests.
 - Prefer Rust snippets over prose-only explanations.
 - Sync `README.md`, `examples/usage.rs`, and rustdoc when public usage patterns change.
-- Update `AGENTS.md`, `CONTRIBUTING.md`, or `CLAUDE.md` when contributor workflow or repo conventions change.
+- Update `AGENTS.md` when contributor workflow or repo conventions change.
 
 ### When Editing Rust Code
 
@@ -165,13 +155,14 @@ When a substantive change modifies public API behavior, parsing semantics,
 - Keep dependency versions in `Cargo.toml`.
 - Preserve the public API shape unless the task explicitly changes it.
 - Keep code within the declared MSRV in `Cargo.toml`.
-- Treat `cfg_attr` condition tokens as preserved syntax, not evaluated configuration.
+- Treat `cfg_attr` condition tokens as preserved syntax. Use `CfgPredicate::evaluate`
+  with caller-provided `cfg` state when behavior depends on evaluation.
 
 ### When Editing Attribute Expansion or Parsing Behavior
 
 - Keep direct attributes and nested `cfg_attr` attributes behaviorally aligned where the public API promises a unified parsing experience.
-- Preserve condition context for nested attributes.
-- Be explicit when conditions are intentionally not combined or evaluated.
+- Preserve combined condition context for nested attributes.
+- Keep `CfgPredicate` parsing and evaluation aligned with condition-token preservation.
 - Add focused tests or examples for token-splitting edge cases involving groups, generics, name-value attributes, or nested attributes.
 
 ### When Writing Tests
@@ -183,4 +174,4 @@ When a substantive change modifies public API behavior, parsing semantics,
 ### When Editing Formatting or Tooling
 
 - Use the existing `justfile` recipes for formatting and validation.
-- `just fmt` runs `cargo sort-derives`, `cargo fmt`, `taplo fmt`, and `uvx mdformat .`.
+- `just fmt` runs `cargo sort-derives`, `cargo fmt`, `taplo fmt`, and `rumdl fmt .`.

@@ -1,14 +1,13 @@
-use syn::{Field, parse_quote};
-use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
+use quote::ToTokens;
+use syn::{Attribute, Field, parse_quote};
+use syn_cfg_attr::{AttributeHelpers, CfgOption, ExpandedAttr};
 
-// Mock structures to simulate usage
 struct KorumaAttr {
     name: String,
 }
 
 impl syn::parse::Parse for KorumaAttr {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        // Simple parser for demonstration: expects identifier
         let ident: syn::Ident = input.parse()?;
         Ok(KorumaAttr {
             name: ident.to_string(),
@@ -16,49 +15,94 @@ impl syn::parse::Parse for KorumaAttr {
     }
 }
 
-fn parse_field(field: &Field) {
-    println!("Processing field attributes...");
+fn main() -> syn::Result<()> {
+    let field: Field = parse_quote! {
+        #[koruma(skip)]
+        #[cfg_attr(feature = "validation", koruma(required), other_attr)]
+        #[cfg_attr(
+            all(unix, any(feature = "validation", feature = "serde"), not(target_os = "windows")),
+            cfg_attr(target_os = "linux", koruma(validate))
+        )]
+        field: String
+    };
+    let attrs = field.attrs;
 
-    // Automatically looks inside cfg_attr and handles nesting
-    let koruma_attrs = field.attrs.find_attribute("koruma");
-
-    if koruma_attrs.is_empty() {
-        println!("No koruma attributes found.");
-        return;
+    println!("Fallible recursive expansion");
+    let flattened = attrs.try_flattened_attributes()?;
+    for expanded in &flattened {
+        print_expanded_attr(expanded)?;
     }
 
-    for expanded in koruma_attrs {
-        match expanded.parse_args::<KorumaAttr>() {
-            Ok(attr) => {
-                println!("Found koruma attribute: {}", attr.name);
-                if let ExpandedAttr::Nested { condition, .. } = &expanded {
-                    println!("  - Condition: {}", condition);
-                }
-            },
-            Err(e) => println!("  - Error parsing args: {}", e),
-        }
+    println!("\nFallible filtering and parse_args");
+    for expanded in attrs.try_find_attribute("koruma")? {
+        let koruma = expanded.parse_args::<KorumaAttr>()?;
+        println!("  koruma({})", koruma.name);
     }
+
+    println!("\nBest-effort helpers with malformed nested input");
+    let malformed_attrs: Vec<Attribute> = vec![parse_quote!(
+        #[cfg_attr(feature = "broken", koruma + invalid, koruma(fallback))]
+    )];
+
+    if let Err(error) = malformed_attrs.try_flattened_attributes() {
+        println!("  try_flattened_attributes reported: {error}");
+    }
+
+    if let Err(error) = malformed_attrs.try_find_attribute("koruma") {
+        println!("  try_find_attribute reported: {error}");
+    }
+
+    let best_effort = malformed_attrs.flattened_attributes();
+    println!(
+        "  flattened_attributes kept {} parseable attribute(s)",
+        best_effort.len()
+    );
+
+    for expanded in malformed_attrs.find_attribute("koruma") {
+        let koruma = expanded.parse_args::<KorumaAttr>()?;
+        println!("  find_attribute kept koruma({})", koruma.name);
+    }
+
+    Ok(())
 }
 
-fn main() {
-    // Example 1: Direct attribute
-    let field1: Field = parse_quote! {
-        #[koruma(skip)]
-        field1: i32
-    };
-    parse_field(&field1);
+fn print_expanded_attr(expanded: &ExpandedAttr) -> syn::Result<()> {
+    println!("  {}", expanded.path().to_token_stream());
 
-    // Example 2: Nested inside cfg_attr
-    let field2: Field = parse_quote! {
-        #[cfg_attr(feature = "validation", koruma(required), other_attr)]
-        field2: String
-    };
-    parse_field(&field2);
+    match expanded {
+        ExpandedAttr::Direct(_) => {
+            println!("    direct attribute");
+        },
+        ExpandedAttr::Nested {
+            condition,
+            original,
+            ..
+        } => {
+            println!("    combined condition: {condition}");
+            println!(
+                "    containing attribute: {}",
+                original.meta.to_token_stream()
+            );
 
-    // Example 3: Deeply nested
-    let field3: Field = parse_quote! {
-        #[cfg_attr(all(), cfg_attr(any(), koruma(validate)))]
-        field3: u32
-    };
-    parse_field(&field3);
+            let predicate = expanded
+                .parse_condition()?
+                .expect("nested attributes have a condition");
+            println!(
+                "    enabled in example cfg set: {}",
+                predicate.evaluate(example_cfg_enabled)
+            );
+        },
+    }
+
+    Ok(())
+}
+
+fn example_cfg_enabled(option: CfgOption<'_>) -> bool {
+    match option {
+        CfgOption::Flag(name) => name == "unix",
+        CfgOption::NameValue { name, value } => {
+            (name == "feature" && value.value() == "validation")
+                || (name == "target_os" && value.value() == "linux")
+        },
+    }
 }

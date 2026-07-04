@@ -135,9 +135,8 @@ mod tests {
     #[test]
     fn test_split_empty() {
         let ts = quote! {};
-        let splitter = CommaSplitter::new(ts);
-        let parts: Vec<String> = splitter.map(|s| s.to_string()).collect();
-        assert!(parts.is_empty());
+        let mut splitter = CommaSplitter::new(ts);
+        assert!(splitter.next().is_none());
     }
 
     #[test]
