@@ -1,6 +1,11 @@
-use quote::ToTokens;
+use quote::ToTokens as _;
 use syn::{Attribute, Field, parse_quote};
-use syn_cfg_attr::{AttributeHelpers, CfgOption, ExpandedAttr};
+#[expect(
+    clippy::unused_trait_names,
+    reason = "the example names the extension trait so users can see the required import"
+)]
+use syn_cfg_attr::AttributeHelpers;
+use syn_cfg_attr::{CfgOption, ExpandedAttr};
 
 struct KorumaAttr {
     name: String,

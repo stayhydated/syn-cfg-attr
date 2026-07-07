@@ -1,4 +1,4 @@
-use proc_macro2::{TokenStream, TokenTree};
+use proc_macro2::{TokenStream, TokenTree, token_stream};
 
 /// Splits a TokenStream by top-level commas, respecting recursive depths of
 /// parentheses `()`, brackets `[]`, and braces `{}`.
@@ -6,15 +6,15 @@ use proc_macro2::{TokenStream, TokenTree};
 /// Splits arguments of `cfg_attr(condition, attr1, attr2)` where `attr1` or
 /// `attr2` might contain complex tokens.
 pub struct CommaSplitter {
-    input: std::vec::IntoIter<TokenTree>,
+    input: token_stream::IntoIter,
     current_buffer: Vec<TokenTree>,
-    depth: isize,
+    depth: usize,
 }
 
 impl CommaSplitter {
     pub fn new(tokens: TokenStream) -> Self {
         Self {
-            input: tokens.into_iter().collect::<Vec<_>>().into_iter(),
+            input: tokens.into_iter(),
             current_buffer: Vec::new(),
             depth: 0,
         }
@@ -46,7 +46,7 @@ impl Iterator for CommaSplitter {
                             if p.as_char() == '<' {
                                 self.depth += 1;
                             } else if p.as_char() == '>' {
-                                self.depth -= 1;
+                                self.depth = self.depth.saturating_sub(1);
                             }
                             self.current_buffer.push(tt);
                         },
@@ -116,7 +116,7 @@ mod tests {
         let splitter = CommaSplitter::new(ts);
         let parts: Vec<String> = splitter.map(|s| s.to_string()).collect();
         assert_eq!(parts.len(), 2);
-        // Spacing varies by quote verions, just check content
+        // Spacing varies by quote versions, just check content
         assert!(parts[0].contains("(a"));
         assert_eq!(parts[1], "d");
     }
@@ -158,5 +158,16 @@ mod tests {
         let p0 = parts[0].replace(" ", "");
         assert_eq!(p0, "Type<A,Vec<B>>");
         assert_eq!(parts[1], "C");
+    }
+
+    #[test]
+    fn test_split_after_top_level_greater_than() {
+        let ts = quote! { answer = 2 > 1, next };
+        let splitter = CommaSplitter::new(ts);
+        let parts: Vec<String> = splitter.map(|s| s.to_string()).collect();
+
+        assert_eq!(parts.len(), 2);
+        assert_eq!(parts[0].replace(" ", ""), "answer=2>1");
+        assert_eq!(parts[1], "next");
     }
 }

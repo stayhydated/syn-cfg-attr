@@ -14,6 +14,7 @@ For most code changes, start with `src/`.
 
 For usage guidance, start with `README.md` and `examples/usage.rs`.
 For implementation behavior, use `src/` and focused tests.
+For repo commands, start with `just --list`; `justfile` is the local command index.
 
 ## Project Summary
 
@@ -35,9 +36,10 @@ Before editing, classify the change:
    public rustdoc, and example are user-facing. Implementation details belong
    near the code, tests, or concise rustdoc. Contributor conventions belong in
    `AGENTS.md`.
-1. **Sync public workflow changes.** If API behavior, parsing semantics,
-   examples, limitations, or MSRV changes, update the README, example,
-   rustdoc, and contributor guidance in the same change when applicable.
+1. **Sync public workflow and Rust compatibility changes.** If API behavior,
+   parsing semantics, examples, documented behavior boundaries, the Cargo
+   edition, or the declared `rust-version` changes, update the README, example,
+   rustdoc, tests, and contributor guidance in the same change when applicable.
 1. **Validate narrowly.** Run the smallest command that proves the edited
    behavior or documentation surface is still sound.
 
@@ -48,7 +50,7 @@ edited:
 
 - **User-facing**: normal entry points for crate consumers and macro authors.
 - **Public integration**: public APIs intended to be composed into procedural macro or code-generation crates.
-- **Internal**: implementation details, tests, examples-as-maintenance, and contributor tooling.
+- **Internal**: implementation details, tests, and contributor tooling.
 
 ## Documentation Placement
 
@@ -65,7 +67,7 @@ User-facing documentation should explain:
 - who the crate is for,
 - what `cfg_attr` behavior is expanded,
 - what condition context is preserved,
-- what limitations remain.
+- which behavior boundaries users need to account for.
 
 Keep user-facing documentation example-first. Prefer compact Rust snippets over
 prose-only explanations.
@@ -81,31 +83,31 @@ Do not use them as substitutes for user docs.
 
 Keep implementation detail close to the implementation:
 
-- use rustdoc for public API behavior and limitations,
+- use rustdoc for public API behavior and behavior boundaries,
 - use focused comments for non-obvious local code,
-- use tests for parsing and token-splitting edge cases,
-- do not add standalone architecture docs unless the project intentionally
-  restores that documentation surface.
+- use tests for parsing and token-splitting edge cases.
 
 ## Synchronization Rules
 
 When a substantive change modifies public API behavior, parsing semantics,
-`cfg_attr` expansion behavior, limitations, examples, or MSRV:
+`cfg_attr` expansion behavior, documented behavior boundaries, examples,
+the Cargo edition, or the declared `rust-version`:
 
 1. Update `README.md` when user-facing behavior or positioning changes.
 1. Update `examples/usage.rs` when usage patterns or recommended APIs change.
 1. Update rustdoc when public items or edge cases need clearer API documentation.
 1. Update tests when expansion, parsing, or token-splitting behavior changes.
+1. Keep `.rustfmt.toml`'s `edition` setting aligned when the Cargo edition changes.
 1. Update `AGENTS.md` when contributor workflow or workspace rules changed.
 1. Keep these surfaces aligned in the same change unless there is a documented reason not to.
 
 ## Workspace Map
 
-### Main User-Facing Entry Points
+### Crate and Documentation Surfaces
 
-- `src`
-  Audience: **User-facing**
-  Role: crate source exposing `ExpandedAttr` and `AttributeHelpers` for flattening and parsing `cfg_attr` while keeping span and condition context.
+- `src/lib.rs`
+  Audience: **Public integration**
+  Role: crate root, rustdoc, public exports, and API-level tests for flattening and parsing `cfg_attr` while keeping span and condition context.
 
 - `src/splitter.rs`
   Audience: **Internal**
@@ -113,17 +115,13 @@ When a substantive change modifies public API behavior, parsing semantics,
 
 - `README.md`
   Audience: **User-facing**
-  Role: top-level introduction, installation instructions, API overview, examples, limitations, and MSRV.
+  Role: top-level introduction, installation instructions, API overview, examples, and behavior notes.
 
 - `examples/usage.rs`
   Audience: **User-facing**
   Role: runnable usage example for direct and nested attribute expansion.
 
-### Internal and Tooling Surfaces
-
-- `justfile`
-  Audience: **Internal**
-  Role: formatting, linting, checking, testing, docs, and publish dry-run workflow.
+### Internal Guidance
 
 - `AGENTS.md`
   Audience: **Internal**
@@ -137,9 +135,11 @@ When a substantive change modifies public API behavior, parsing semantics,
 - Run the narrowest command that proves the edited behavior works for the
   affected API, docs, example, or tooling surface.
 - Prefer targeted `cargo test`, `cargo check`, example, or docs checks before broader validation.
-- Use `just check`, `just test`, or a more specific `justfile` recipe when the change spans multiple surfaces.
+- Use `just --list` to inspect repository recipes; use `just check`,
+  `just test`, or a more specific `justfile` recipe when the change spans
+  multiple surfaces.
 - If validation cannot be run, state why and what remains unvalidated.
-- Do not claim a change works unless it was validated, generated from a source of truth, or the remaining risk is explicitly documented.
+- Do not claim a change works unless it was validated or the remaining risk is explicitly documented.
 
 ### When Editing Docs
 
@@ -151,10 +151,9 @@ When a substantive change modifies public API behavior, parsing semantics,
 
 ### When Editing Rust Code
 
-- Use `cargo` for build, test, and run tasks.
-- Keep dependency versions in `Cargo.toml`.
-- Preserve the public API shape unless the task explicitly changes it.
-- Keep code within the declared MSRV in `Cargo.toml`.
+- Treat the current public API shape as the contract; when it changes, update
+  the README, examples, rustdoc, and tests with the new shape.
+- Keep code within the declared `rust-version` in `Cargo.toml`.
 - Treat `cfg_attr` condition tokens as preserved syntax. Use `CfgPredicate::evaluate`
   with caller-provided `cfg` state when behavior depends on evaluation.
 

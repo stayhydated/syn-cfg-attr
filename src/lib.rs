@@ -155,11 +155,14 @@ impl Parse for CfgPredicate {
         if ident == "not" && input.peek(syn::token::Paren) {
             let content;
             parenthesized!(content in input);
-            let predicates = parse_cfg_predicate_list(&content)?;
-            return match predicates.as_slice() {
-                [predicate] => Ok(CfgPredicate::Not(Box::new(predicate.clone()))),
-                _ => Err(content.error("not(...) expects exactly one cfg predicate")),
+            let mut predicates = parse_cfg_predicate_list(&content)?.into_iter();
+            let Some(predicate) = predicates.next() else {
+                return Err(content.error("not(...) expects exactly one cfg predicate"));
             };
+            if predicates.next().is_some() {
+                return Err(content.error("not(...) expects exactly one cfg predicate"));
+            }
+            return Ok(CfgPredicate::Not(Box::new(predicate)));
         }
 
         Ok(CfgPredicate::Flag(ident))
@@ -199,6 +202,11 @@ impl ExpandedAttr {
     /// Direct attributes use [`Attribute::parse_args`]. Nested `cfg_attr`
     /// entries parse the tokens inside their `Meta::List`. Path-only and
     /// name-value attributes return an error.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the attribute is not list-style or when `T` cannot
+    /// be parsed from the list arguments.
     pub fn parse_args<T: Parse>(&self) -> Result<T> {
         match self {
             ExpandedAttr::Direct(attr) => attr.parse_args(),
@@ -341,7 +349,7 @@ fn flatten_attr_recursive(
         if let Some(condition_stream) = splitter.next() {
             let combined_condition = combine_conditions(parent_condition, condition_stream);
             for inner_tokens in splitter {
-                match syn::parse2::<Meta>(inner_tokens.clone()) {
+                match syn::parse2::<Meta>(inner_tokens) {
                     Ok(nested_meta) if nested_meta.path().is_ident("cfg_attr") => {
                         let synthetic_attr = Attribute {
                             pound_token: Default::default(),
