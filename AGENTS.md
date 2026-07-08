@@ -138,6 +138,11 @@ the Cargo edition, or the declared `rust-version`:
 - Use `just --list` to inspect repository recipes; use `just check`,
   `just test`, or a more specific `justfile` recipe when the change spans
   multiple surfaces.
+- Use `just test-docs` for README, rustdoc, or example documentation changes,
+  and `just test-publish` for package metadata or publishability-sensitive
+  changes.
+- CI runs formatting checks, locked Rust tests, clippy, docs, package dry-run,
+  cargo-machete, coverage, and Codecov publishing from `.github/workflows/ci.yml`.
 - If validation cannot be run, state why and what remains unvalidated.
 - Do not claim a change works unless it was validated or the remaining risk is explicitly documented.
 
