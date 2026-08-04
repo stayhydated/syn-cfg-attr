@@ -1,0 +1,15 @@
+[package]
+name = "web"
+edition.workspace = true
+license.workspace = true
+publish = false
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+dioxus = { features = [ "launch", "lib", "router", "web" ], workspace = true }
+stayhydated-dioxus = { workspace = true }
+stayhydated-site = { workspace = true }
+
+[lints]
+workspace = true

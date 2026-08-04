@@ -1,0 +1,16 @@
+[package]
+name = "xtask"
+edition.workspace = true
+license.workspace = true
+publish = false
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { features = [ "derive" ], workspace = true }
+stayhydated-xtask = { workspace = true }
+web = { workspace = true }
+
+[lints]
+workspace = true

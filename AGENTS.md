@@ -99,6 +99,10 @@ the Cargo edition, or the declared `rust-version`:
 1. Update tests when expansion, parsing, or token-splitting behavior changes.
 1. Keep `.rustfmt.toml`'s `edition` setting aligned when the Cargo edition changes.
 1. Update `AGENTS.md` when contributor workflow or workspace rules changed.
+1. Keep book chapters and `skills/use-syn-cfg-attr/` aligned when public usage
+   guidance or recommended API choices change.
+1. Keep `web/`, `xtask/`, the three shared dependency revisions, Pages
+   workflows, and root web recipes aligned when site assembly changes.
 1. Keep these surfaces aligned in the same change unless there is a documented reason not to.
 
 ## Workspace Map
@@ -121,6 +125,36 @@ the Cargo edition, or the declared `rust-version`:
   Audience: **User-facing**
   Role: runnable usage example for direct and nested attribute expansion.
 
+- `book/`
+  Audience: **User-facing**
+  Role: task-oriented mdBook documentation for adopting the crate, expanding
+  attributes, evaluating preserved conditions, and choosing error behavior.
+
+- `skills/use-syn-cfg-attr/`
+  Audience: **Public integration**
+  Role: reusable coding-agent guidance for applying the public API in syn-based
+  procedural macros and code-generation tools.
+
+- `web/`
+  Audience: **User-facing**
+  Role: demo-less single-page Dioxus project portal, project-owned
+  destinations, and route manifest. Shared owns its generic styles and Pages
+  assembly assets.
+
+- `xtask/`
+  Audience: **Internal**
+  Role: repository commands that build the book, llms outputs, and Pages site,
+  and preview the assembled static artifact.
+
+- `.github/workflows/gh-pages.yml`
+  Audience: **Internal**
+  Role: GitHub Pages build and deployment through the shared reusable workflow.
+
+- `.github/workflows/update-shared-revisions.yml`
+  Audience: **Internal**
+  Role: scheduled shared-revision update workflow for the three synchronized
+  stayhydated dependencies.
+
 ### Internal Guidance
 
 - `AGENTS.md`
@@ -141,6 +175,12 @@ the Cargo edition, or the declared `rust-version`:
 - Use `just test-docs` for README, rustdoc, or example documentation changes,
   and `just test-publish` for package metadata or publishability-sensitive
   changes.
+- Use `cargo xtask build book` for mdBook source changes and `just web-build`
+  for site, sitemap, generated llms, or Pages assembly changes.
+- Validate `skills/use-syn-cfg-attr/` with the skill-creator
+  `scripts/quick_validate.py` helper after changing its frontmatter or guidance.
+- Use `cargo test -p web --lib --locked` for the consumer-owned portal and
+  route-manifest contract without a browser build.
 - CI runs formatting checks, locked Rust tests, clippy, docs, package dry-run,
   cargo-machete, coverage, and Codecov publishing from `.github/workflows/ci.yml`.
 - If validation cannot be run, state why and what remains unvalidated.

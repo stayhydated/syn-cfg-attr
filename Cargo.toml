@@ -1,3 +1,23 @@
+[workspace]
+default-members = [ "." ]
+members = [ "web", "xtask" ]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.96"
+version = "0.2.0"
+
+[workspace.dependencies]
+anyhow = "1.0"
+clap = "4.6"
+dioxus = { default-features = false, version = "=0.7.9" }
+stayhydated-dioxus = { path = "../shared/crates/stayhydated-dioxus" }
+stayhydated-site = { path = "../shared/crates/stayhydated-site" }
+stayhydated-xtask = { path = "../shared/crates/stayhydated-xtask" }
+web = { path = "web" }
+
 [package]
 name = "syn-cfg-attr"
 description = """
