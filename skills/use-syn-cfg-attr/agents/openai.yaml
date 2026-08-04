@@ -1,0 +1,4 @@
+interface:
+  display_name: "Use syn-cfg-attr"
+  short_description: "Expand cfg_attr safely in syn-based Rust tooling"
+  default_prompt: "Use $use-syn-cfg-attr to expand and parse cfg_attr-wrapped syn attributes while preserving their conditions."
