@@ -2,6 +2,7 @@
 
 [![Build Status](https://github.com/stayhydated/syn-cfg-attr/actions/workflows/ci.yml/badge.svg)](https://github.com/stayhydated/syn-cfg-attr/actions/workflows/ci.yml)
 [![Codecov](https://codecov.io/github/stayhydated/syn-cfg-attr/graph/badge.svg)](https://codecov.io/github/stayhydated/syn-cfg-attr)
+[![Book](https://img.shields.io/badge/docs-book-black)](https://stayhydated.github.io/syn-cfg-attr/book/)
 [![Docs](https://docs.rs/syn-cfg-attr/badge.svg)](https://docs.rs/syn-cfg-attr/)
 [![Crates.io](https://img.shields.io/crates/v/syn-cfg-attr.svg)](https://crates.io/crates/syn-cfg-attr)
 
