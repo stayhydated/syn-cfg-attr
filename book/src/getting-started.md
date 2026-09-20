@@ -5,16 +5,17 @@ This walkthrough finds `serde` attributes written directly or inside
 
 ## Prerequisites
 
-- Rust 1.96 or newer.
+- Rust 1.98 or newer.
+- `syn` 3, which supplies the attribute types used by `syn-cfg-attr` 0.3.
 - A parser, procedural macro, or code generator that collects attributes in a
   `Vec<syn::Attribute>`.
 
 ## Add the dependency
 
-Add `syn-cfg-attr` beside the `syn` dependency used by your project:
+Add `syn-cfg-attr` beside your project's `syn` 3 dependency:
 
 ```bash
-cargo add syn-cfg-attr
+cargo add syn-cfg-attr@0.3
 ```
 
 ## Expand and parse attributes
@@ -47,6 +48,10 @@ fn main() -> syn::Result<()> {
 `try_find_attribute` expands recursively before filtering. The result contains
 both the direct `serde` attribute and the `serde` entry guarded by
 `feature = "json"`. A successful run completes both `Meta` parses.
+
+Each attribute in this example contains one `Meta` argument. For your own
+attribute grammar, pass a type implementing `syn::parse::Parse` to
+`parse_args::<T>()`. The parser must consume the complete argument list.
 
 Next, learn how to [choose an expansion method](expand-and-filter.md),
 [evaluate preserved conditions](evaluate-conditions.md), or

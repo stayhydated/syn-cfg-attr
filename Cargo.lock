@@ -3742,7 +3742,7 @@ dependencies = [
 
 [[package]]
 name = "syn-cfg-attr"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4356,7 +4356,7 @@ dependencies = [
 
 [[package]]
 name = "web"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "dioxus",
  "stayhydated-dioxus",
@@ -4719,7 +4719,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xtask"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "clap",

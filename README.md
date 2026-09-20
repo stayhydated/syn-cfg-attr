@@ -1,26 +1,19 @@
 # syn-cfg-attr
 
-[![Build Status](https://github.com/stayhydated/syn-cfg-attr/actions/workflows/ci.yml/badge.svg)](https://github.com/stayhydated/syn-cfg-attr/actions/workflows/ci.yml)
-[![Codecov](https://codecov.io/github/stayhydated/syn-cfg-attr/graph/badge.svg)](https://codecov.io/github/stayhydated/syn-cfg-attr)
-[![Docs](https://docs.rs/syn-cfg-attr/badge.svg)](https://docs.rs/syn-cfg-attr/)
-[![Crates.io](https://img.shields.io/crates/v/syn-cfg-attr.svg)](https://crates.io/crates/syn-cfg-attr)
+[![CI][ci-badge]][ci]
+[![Codecov][codecov-badge]][codecov]
+[![Book][book-badge]][book]
+[![crates.io][crate-badge]][crate]
 
 `syn-cfg-attr` recursively expands `cfg_attr` entries from
 `Vec<syn::Attribute>`. Procedural macros and code generators can inspect direct
 and conditional attributes through one API without losing their guard
 conditions.
 
-## Install
-
-```bash
-cargo add syn-cfg-attr
-```
-
-## Use
+## Example
 
 ```rust
-use syn::{Attribute, parse_quote};
-use syn::Meta;
+use syn::{Attribute, Meta, parse_quote};
 use syn_cfg_attr::AttributeHelpers;
 
 fn main() -> syn::Result<()> {
@@ -31,13 +24,8 @@ fn main() -> syn::Result<()> {
 
     let serde_attrs = attrs.try_find_attribute("serde")?;
     assert_eq!(serde_attrs.len(), 2);
-    assert_eq!(
-        serde_attrs
-            .iter()
-            .filter(|attr| attr.condition().is_some())
-            .count(),
-        1
-    );
+    assert!(serde_attrs[0].condition().is_none());
+    assert!(serde_attrs[1].condition().is_some());
 
     for attr in serde_attrs {
         let _: Meta = attr.parse_args()?;
@@ -52,10 +40,18 @@ and reports malformed nested entries as `syn::Error`. The returned
 `ExpandedAttr` values expose preserved conditions and parse list arguments for
 both direct and nested attributes.
 
-## Documentation
+Nested guards combine as `all(parent, child)`. Use `condition()` to forward
+the guard as Rust tokens, or `parse_condition()` and `CfgPredicate::evaluate`
+to evaluate it against configuration supplied by your tool.
 
-- Follow the [user guide](https://stayhydated.github.io/syn-cfg-attr/book/)
-  for method selection, condition evaluation, and error handling.
-- Use the [API reference](https://docs.rs/syn-cfg-attr/) for exact signatures.
-- Run the [complete example](examples/usage.rs) for direct, conditional, and
-  recursively nested attributes.
+The [complete example](examples/usage.rs) shows recursive expansion,
+condition evaluation, and error handling.
+
+[ci-badge]: https://github.com/stayhydated/syn-cfg-attr/actions/workflows/ci.yml/badge.svg?branch=master
+[ci]: https://github.com/stayhydated/syn-cfg-attr/actions/workflows/ci.yml
+[codecov-badge]: https://codecov.io/github/stayhydated/syn-cfg-attr/graph/badge.svg
+[codecov]: https://codecov.io/github/stayhydated/syn-cfg-attr
+[book-badge]: https://img.shields.io/badge/book-online-blue
+[book]: https://stayhydated.github.io/syn-cfg-attr/book/
+[crate-badge]: https://img.shields.io/crates/v/syn-cfg-attr.svg
+[crate]: https://crates.io/crates/syn-cfg-attr

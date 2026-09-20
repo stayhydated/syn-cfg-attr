@@ -26,6 +26,9 @@ The two `find_attribute` methods use `ExpandedAttr::is_ident`, so they match a
 single-segment path such as `serde`. Expand first and filter with
 `ExpandedAttr::path()` when your integration accepts qualified or custom paths.
 
+Filtering happens after expansion. `try_find_attribute("serde")` can therefore
+report malformed nested metadata even when that entry has another name.
+
 ## Understand recursive expansion
 
 Expansion is recursive. For this input:

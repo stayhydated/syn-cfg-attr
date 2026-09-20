@@ -5,10 +5,10 @@ attribute the same way whether a user wrote it directly or nested it in
 `cfg_attr`. Recursive expansion returns the nested attributes while preserving
 the condition that guarded each one.
 
-Expansion is syntax-oriented: it does not decide whether a guard is active for
-a target or feature set. Direct attributes and every parseable nested entry are
-available for inspection. Nested entries carry their raw condition tokens, and
-nested guards are combined with `all(...)`.
+Expansion preserves syntax independently of the active target or feature set.
+It returns direct attributes and expands nested entries, combining their guards
+with `all(...)`. Choose fallible expansion to report malformed entries or
+best-effort expansion to keep the parseable ones.
 
 Use the crate when your tool needs to:
 
@@ -17,9 +17,9 @@ Use the crate when your tool needs to:
 - retain a combined guard when generating output or diagnostics;
 - evaluate a guard against configuration state owned by the caller.
 
-`CfgPredicate::evaluate` obtains target flags, feature values, and custom cfg
+`CfgPredicate::evaluate` reads target flags, feature values, and custom `cfg`
 state through a callback. Supply the configuration for the code being
-inspected rather than inferring it from the host process.
+inspected; a procedural macro's host can have a different target or feature set.
 
 Start with [Get started](getting-started.md), then choose expansion, condition,
 and error behavior for your integration.
