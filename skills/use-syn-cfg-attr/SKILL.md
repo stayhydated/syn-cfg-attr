@@ -1,34 +1,18 @@
 ---
 name: use-syn-cfg-attr
 description: >
-  Use when writing, reviewing, or documenting Rust procedural macros, derives,
-  source analyzers, and code generators that consume syn-cfg-attr. Covers
-  recursive cfg_attr expansion from syn attribute vectors, identifier filtering,
-  uniform list-argument parsing, preserved nested guards, caller-owned
-  CfgPredicate evaluation, and fallible versus best-effort discovery. Excludes
-  generic syn parsing unrelated to this crate and maintenance of syn-cfg-attr
-  itself.
+  Integrate syn-cfg-attr into Rust procedural macros, derives, source analyzers,
+  and code generators. Use when expanding conditional attributes, preserving or
+  evaluating their guards, or choosing diagnostics in consumer code. Excludes
+  generic syn parsing and maintenance of syn-cfg-attr itself.
 ---
 
 # Use syn-cfg-attr
 
-## Apply the workflow
-
-1. Locate the consumer-owned `Vec<syn::Attribute>` and import
-   `syn_cfg_attr::AttributeHelpers`.
-2. Decide whether one malformed nested entry must become a diagnostic or may be
-   skipped deliberately.
-3. Expand all attributes or filter one identifier with the corresponding
-   method below.
-4. Parse list arguments through `ExpandedAttr::parse_args<T>()` so direct and
-   nested forms share one code path.
-5. Preserve raw guards with `condition()`, or parse them with
-   `parse_condition()` when structured inspection is required.
-6. Evaluate parsed guards only against configuration state supplied by the
-   consumer.
-
-Add the dependency with `cargo add syn-cfg-attr` when the consumer does not
-already declare it.
+Locate the consumer's `Vec<syn::Attribute>` and import
+`syn_cfg_attr::AttributeHelpers`. `syn-cfg-attr` 0.3 uses `syn` 3 and requires
+Rust 1.98. Check the consumer's versions before changing an integration; its
+attribute types must come from the same major `syn` version.
 
 ## Choose expansion behavior
 
@@ -44,22 +28,24 @@ only when partial discovery is an explicit product decision.
 
 The filtered methods use single-identifier matching. Use an expansion method
 and filter `ExpandedAttr::path()` yourself for qualified or consumer-defined
-path rules.
+path rules. Fallible filtering expands the entire vector first, so malformed
+nested metadata can fail the call even when it has another attribute name.
 
 ## Expand and parse attributes
 
 Use fallible filtered expansion for the common procedural-macro path:
 
 ```rust
+use proc_macro2::TokenStream;
 use syn::{Attribute, Meta};
 use syn_cfg_attr::AttributeHelpers;
 
-fn parse_serde(attrs: &Vec<Attribute>) -> syn::Result<Vec<(Meta, Option<String>)>> {
+fn parse_serde(attrs: &Vec<Attribute>) -> syn::Result<Vec<(Meta, Option<TokenStream>)>> {
     attrs
         .try_find_attribute("serde")?
         .into_iter()
         .map(|attr| {
-            let condition = attr.condition().map(ToString::to_string);
+            let condition = attr.condition().cloned();
             let args = attr.parse_args::<Meta>()?;
             Ok((args, condition))
         })
@@ -68,7 +54,8 @@ fn parse_serde(attrs: &Vec<Attribute>) -> syn::Result<Vec<(Meta, Option<String>)
 ```
 
 Treat `parse_args<T>()` as a list-attribute operation. Path-only and name-value
-metadata do not contain list arguments and return an error.
+metadata return an error. This example accepts one `Meta` per argument list;
+use the consumer's `Parse` implementation for a different grammar.
 
 Match `ExpandedAttr` when the consumer needs the direct `Attribute`, nested
 `Meta`, or containing `cfg_attr`. During recursive expansion, `original` can be
@@ -80,8 +67,12 @@ combined `condition` for the complete guard.
 Prefer the raw condition when forwarding syntax or attaching a later guard:
 
 ```rust
-if let Some(condition) = expanded.condition() {
-    generated.extend(quote::quote!(#[cfg(#condition)]));
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn_cfg_attr::ExpandedAttr;
+
+fn cfg_guard(expanded: &ExpandedAttr) -> Option<TokenStream> {
+    expanded.condition().map(|condition| quote!(#[cfg(#condition)]))
 }
 ```
 
@@ -104,24 +95,21 @@ fn is_enabled(
 
 Back `cfg_enabled` with the configuration for the code being inspected. Do not
 infer target, feature, or custom cfg state from the host running a procedural
-macro.
+macro. Evaluation short-circuits `all` and `any`, so the callback must answer
+configuration queries without relying on every option being visited.
 
 ## Propagate diagnostics
 
 Fallible expansion reports a non-list `cfg_attr` or a nested entry that cannot
-parse as `syn::Meta`. It preserves condition tokens without validating them.
+parse as `syn::Meta`. It preserves condition tokens for later parsing and treats
+an empty `cfg_attr()` list as producing no entries. Apply any additional
+consumer syntax requirements separately.
+
 Propagate `syn::Error` from expansion, `parse_args`, and `parse_condition`
 through the consumer's existing diagnostic path.
 
 ## Verify consumer changes
 
-Run the narrowest command that covers the edited integration:
-
-```bash
-cargo check -p <consumer-package>
-cargo test -p <consumer-package> <focused-test-name>
-```
-
-Include both direct and `cfg_attr`-wrapped input in focused tests when the
-consumer promises uniform parsing. Add a nested `cfg_attr` case when combined
-conditions affect generated output or evaluation.
+Use the consumer's existing checks. Include both direct and `cfg_attr`-wrapped
+input in focused tests when the consumer promises uniform parsing. Add a nested
+`cfg_attr` case when combined conditions affect generated output or evaluation.
