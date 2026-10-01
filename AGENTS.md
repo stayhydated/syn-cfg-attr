@@ -31,8 +31,7 @@ combined `cfg_attr` guards. Start with `src/lib.rs` for API behavior and
   affected expansion tests in `src/lib.rs`.
 - When site assembly changes, keep `web/`, `xtask/`, Pages workflows, and the root
   web recipes aligned. The three `stayhydated-*` dependencies in `Cargo.toml`
-  share one revision; `.github/workflows/update-shared-revisions.yml` updates
-  them together. Shared owns generic site styles and assembly assets.
+  share one revision. Shared owns generic site styles and assembly assets.
 - Generate published book and llms artifacts from `book/src/` through `xtask`.
   Edit the source chapters and project configuration rather than generated site
   output.
