@@ -10,6 +10,7 @@ combined `cfg_attr` guards. Start with `src/lib.rs` for API behavior and
 | --- | --- |
 | `src/lib.rs` | Public integration API, rustdoc, expansion and predicate logic, and API tests. |
 | `src/splitter.rs` | Internal comma splitting and focused token tests. |
+| `src/property_tests.rs` | Boolean truth tables, ordered attribute forest models, and malformed-entry regressions. |
 | `README.md`, `examples/usage.rs` | Consumer introduction and runnable usage. |
 | `book/src/` | Consumer tasks: expansion, parsing, conditions, and diagnostics. `SUMMARY.md` owns navigation. |
 | `skills/use-syn-cfg-attr/` | Reusable guidance for agents integrating the crate into consumers. |
@@ -32,6 +33,11 @@ combined `cfg_attr` guards. Start with `src/lib.rs` for API behavior and
 - Cover direct and `cfg_attr`-wrapped input when changing shared parsing behavior.
   For splitter changes, check the focused group, generic, and comma cases plus
   affected expansion tests in `src/lib.rs`.
+- Property oracles use truth tables and independently constructed leaf metadata.
+  Keep recursive generators bounded and shrink complete branches. Flattening
+  preserves false guards and does not validate guard syntax; successful strict
+  expansion can still yield a `parse_condition()` error. Keep minimized failing
+  seeds and add focused regressions for contract failures.
 - When site assembly changes, keep `web/`, `xtask/`, Pages workflows, and the root
   web recipes aligned. The three `stayhydated-*` dependencies in `Cargo.toml`
   share one revision. Shared owns generic site styles and assembly assets.
@@ -46,6 +52,7 @@ Choose the check for the edited surface:
 | Change | Check |
 | --- | --- |
 | Expansion, predicates, or splitter | `cargo test -p syn-cfg-attr --lib --locked` with a focused test filter when useful. |
+| Property suites, including splitter boundaries | `cargo test -p syn-cfg-attr --lib --locked`. They default to 64 cases per property; `PROPTEST_CASES=512` increases the local budget and `PROPTEST_RNG_SEED` replays a chosen seed. |
 | Runnable example | `cargo run -p syn-cfg-attr --example usage --locked`. |
 | Rustdoc examples | `cargo test -p syn-cfg-attr --doc --locked`. |
 | API documentation rendering | `cargo doc -p syn-cfg-attr --no-deps --locked`. `just test-docs` builds workspace documentation and opens it in a browser. |

@@ -61,6 +61,8 @@ use syn::{
     punctuated::Punctuated,
 };
 
+#[cfg(test)]
+mod property_tests;
 mod splitter;
 use splitter::CommaSplitter;
 

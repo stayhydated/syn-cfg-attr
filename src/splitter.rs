@@ -70,7 +70,42 @@ impl Iterator for CommaSplitter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
     use quote::quote;
+
+    proptest! {
+        #![proptest_config(crate::property_tests::property_config())]
+
+        #[test]
+        fn generated_chunks_preserve_groups_and_generic_boundaries(chunks in prop::collection::vec((0u8..4, 0u8..4), 0..17), trailing in any::<bool>()) {
+            let expected = chunks.iter().map(|(kind, id)| {
+                let source = match kind {
+                    0 => format!("item{id}"),
+                    1 => format!("call([item{id}, x], {{ y, z }})"),
+                    2 => format!("Type<Item{id}, Vec<Other>>"),
+                    _ => format!("answer = {id} > 0"),
+                };
+                source.parse::<TokenStream>().unwrap()
+            }).collect::<Vec<_>>();
+            let mut input = TokenStream::new();
+            for (index, chunk) in expected.iter().enumerate() {
+                if index != 0 { input.extend(quote!(,)); }
+                input.extend(chunk.clone());
+            }
+            if trailing && !expected.is_empty() { input.extend(quote!(,)); }
+            let actual = CommaSplitter::new(input).map(|tokens| tokens.to_string()).collect::<Vec<_>>();
+            let expected = expected.iter().map(ToString::to_string).collect::<Vec<_>>();
+            prop_assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn consecutive_commas_keep_interior_empty_chunks(count in 1usize..17) {
+            let input = ",".repeat(count).parse::<TokenStream>().unwrap();
+            let actual = CommaSplitter::new(input).collect::<Vec<_>>();
+            prop_assert_eq!(actual.len(), count);
+            prop_assert!(actual.iter().all(TokenStream::is_empty));
+        }
+    }
 
     #[test]
     fn test_split_simple() {
