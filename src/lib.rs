@@ -396,6 +396,7 @@ fn combine_conditions(parent: Option<&TokenStream>, current: TokenStream) -> Tok
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::assert_matches;
     use syn::parse_quote;
 
     fn compact_tokens(tokens: &TokenStream) -> String {
@@ -422,6 +423,10 @@ mod tests {
         assert_eq!(flattened.len(), 2);
         assert!(flattened[0].is_ident("foo"));
         assert!(flattened[1].is_ident("bar"));
+        assert_matches!(
+            flattened[0].parse_condition(),
+            Ok(Some(CfgPredicate::All(_)))
+        );
 
         assert_eq!(nested_condition(&flattened[0]).to_string(), "all ()");
     }
@@ -558,11 +563,7 @@ mod tests {
         let attr = ExpandedAttr::Direct(parse_quote!(#[foo]));
 
         assert!(attr.condition().is_none());
-        assert!(
-            attr.parse_condition()
-                .expect("direct condition parses")
-                .is_none()
-        );
+        assert_matches!(attr.parse_condition(), Ok(None));
     }
 
     #[test]

@@ -11,7 +11,7 @@ description: >
 
 Locate the consumer's `Vec<syn::Attribute>` and import
 `syn_cfg_attr::AttributeHelpers`. `syn-cfg-attr` 0.3 uses `syn` 3 and requires
-Rust 1.98. Check the consumer's versions before changing an integration; its
+Rust 1.99. Check the consumer's versions before changing an integration; its
 attribute types must come from the same major `syn` version.
 
 ## Choose expansion behavior

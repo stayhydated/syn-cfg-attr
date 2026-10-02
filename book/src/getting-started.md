@@ -5,7 +5,7 @@ This walkthrough finds `serde` attributes written directly or inside
 
 ## Prerequisites
 
-- Rust 1.98 or newer.
+- Rust 1.99 or newer.
 - `syn` 3, which supplies the attribute types used by `syn-cfg-attr` 0.3.
 - A parser, procedural macro, or code generator that collects attributes in a
   `Vec<syn::Attribute>`.
