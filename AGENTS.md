@@ -26,6 +26,9 @@ combined `cfg_attr` guards. Start with `src/lib.rs` for API behavior and
 - Preserve combined guards during recursive expansion. `condition()` owns raw
   syntax; `parse_condition()` and `CfgPredicate::evaluate` provide structured
   parsing and evaluation with caller-supplied configuration.
+  Boolean predicates normalize to empty `All` and `Any` lists while raw guard
+  tokens remain unchanged. Keep short-circuit evaluation from querying skipped
+  options.
 - Cover direct and `cfg_attr`-wrapped input when changing shared parsing behavior.
   For splitter changes, check the focused group, generic, and comma cases plus
   affected expansion tests in `src/lib.rs`.
@@ -52,7 +55,22 @@ Choose the check for the edited surface:
 | Portal destinations or route manifest | `cargo test -p web --lib --locked`. |
 | Site, sitemap, or llms assembly | `MDBOOK_BUILD__CREATE_MISSING=false just web-build`. |
 
-README and book snippets need their own compilation checks when changed; a
-`cargo doc` build renders rustdoc. Use `just check`, `just test`, or `just clippy`
-when a change spans the workspace. Report which checks ran and any failed or
-unavailable checks.
+Use `just check`, `just test`, or `just clippy` when a change spans the workspace.
+`.github/workflows/ci.yml` defines the merge checks; `just ci` also runs
+formatting commands that modify files. Report which checks ran and any failed
+or unavailable checks.
+
+`README.md` is not included in the crate's rustdoc, and `cargo doc` only renders
+documentation. Check README and book snippets separately with a fresh library
+build and explicit dependencies; `mdbook test -L` alone does not link these
+snippets:
+
+```bash
+set -e
+docs_target=$(mktemp -d)
+cargo build -p syn-cfg-attr --lib --locked --target-dir "$docs_target"
+for source in README.md book/src/*.md; do
+    rustdoc --test --edition 2024 "$source" -L "$docs_target/debug/deps" \
+        --extern syn_cfg_attr --extern syn --extern proc_macro2 --extern quote
+done
+```

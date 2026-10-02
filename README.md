@@ -3,7 +3,7 @@
 [![CI][ci-badge]][ci]
 [![Codecov][codecov-badge]][codecov]
 [![Book][book-badge]][book]
-[![crates.io][crate-badge]][crate]
+[![crates.io: syn-cfg-attr][crate-badge]][crate]
 
 `syn-cfg-attr` recursively expands `cfg_attr` entries from
 `Vec<syn::Attribute>`. Procedural macros and code generators can inspect direct
@@ -49,7 +49,7 @@ Boolean guards `true` and `false` evaluate without querying the configuration
 callback. Their structured forms are empty `All` and `Any` lists, respectively;
 `condition()` preserves the original boolean tokens.
 
-The [complete example](examples/usage.rs) shows recursive expansion,
+The [complete example][example] shows recursive expansion,
 condition evaluation, and error handling.
 
 [ci-badge]: https://github.com/stayhydated/syn-cfg-attr/actions/workflows/ci.yml/badge.svg?branch=master
@@ -58,5 +58,6 @@ condition evaluation, and error handling.
 [codecov]: https://codecov.io/github/stayhydated/syn-cfg-attr
 [book-badge]: https://img.shields.io/badge/book-online-blue
 [book]: https://stayhydated.github.io/syn-cfg-attr/book/
-[crate-badge]: https://img.shields.io/crates/v/syn-cfg-attr.svg
+[crate-badge]: https://img.shields.io/crates/v/syn-cfg-attr.svg?label=syn-cfg-attr
 [crate]: https://crates.io/crates/syn-cfg-attr
+[example]: https://github.com/stayhydated/syn-cfg-attr/blob/master/examples/usage.rs
