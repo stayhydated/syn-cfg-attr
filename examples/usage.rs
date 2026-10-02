@@ -23,6 +23,8 @@ impl syn::parse::Parse for KorumaAttr {
 fn main() -> syn::Result<()> {
     let field: Field = parse_quote! {
         #[koruma(skip)]
+        #[cfg_attr(true, koruma(always))]
+        #[cfg_attr(false, koruma(disabled))]
         #[cfg_attr(feature = "validation", koruma(required), other_attr)]
         #[cfg_attr(
             all(unix, any(feature = "validation", feature = "serde"), not(target_os = "windows")),

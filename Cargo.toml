@@ -39,6 +39,9 @@ proc-macro2 = "1.0.107"
 quote = "1.0.47"
 syn = { features = [ "full", "extra-traits" ], version = "3.0" }
 
+[dev-dependencies]
+proptest = { default-features = false, features = [ "std" ], version = "1.11" }
+
 [workspace.lints.rust]
 future_incompatible = "deny"
 nonstandard_style = "deny"

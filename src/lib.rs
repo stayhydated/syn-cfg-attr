@@ -56,11 +56,13 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    Attribute, Ident, LitStr, Meta, Path, Result, Token, parenthesized,
+    Attribute, Ident, LitBool, LitStr, Meta, Path, Result, Token, parenthesized,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
 };
 
+#[cfg(test)]
+mod property_tests;
 mod splitter;
 use splitter::CommaSplitter;
 
@@ -69,6 +71,8 @@ use splitter::CommaSplitter;
 /// Use [`ExpandedAttr::parse_condition`] to parse the condition stored on a
 /// nested attribute, then [`CfgPredicate::evaluate`] to evaluate it with the
 /// caller's target, feature, or custom `cfg` state.
+/// Boolean literals normalize to empty predicate lists: `true` becomes
+/// [`Self::All`] and `false` becomes [`Self::Any`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CfgPredicate {
     /// A bare `cfg` option such as `unix` or `target_thread_local`.
@@ -130,6 +134,15 @@ impl CfgPredicate {
 
 impl Parse for CfgPredicate {
     fn parse(input: ParseStream<'_>) -> Result<Self> {
+        if input.peek(LitBool) {
+            let literal = input.parse::<LitBool>()?;
+            return Ok(if literal.value {
+                Self::All(Vec::new())
+            } else {
+                Self::Any(Vec::new())
+            });
+        }
+
         let ident = input.parse::<Ident>()?;
 
         if input.peek(Token![=]) {
@@ -539,6 +552,54 @@ mod tests {
             CfgOption::Flag(_) | CfgOption::NameValue { .. } => false,
         });
         assert!(!disabled);
+    }
+
+    #[test]
+    fn test_boolean_predicates_normalize_and_short_circuit() {
+        for (source, expected) in [
+            ("true", true),
+            ("false", false),
+            ("not(false)", true),
+            ("all(true, not(false))", true),
+            ("all(false, unix)", false),
+            ("any(true, unix)", true),
+        ] {
+            let condition: CfgPredicate = syn::parse_str(source).expect("boolean predicate");
+            assert_eq!(
+                condition.evaluate(|_| panic!("{source} should not need cfg options")),
+                expected,
+                "{source}"
+            );
+        }
+        assert_eq!(
+            syn::parse_str::<CfgPredicate>("true").unwrap(),
+            CfgPredicate::All(vec![])
+        );
+        assert_eq!(
+            syn::parse_str::<CfgPredicate>("false").unwrap(),
+            CfgPredicate::Any(vec![])
+        );
+        for source in ["true()", "false = \"value\""] {
+            assert!(syn::parse_str::<CfgPredicate>(source).is_err(), "{source}");
+        }
+    }
+
+    #[test]
+    fn test_boolean_nested_guards_preserve_tokens_and_evaluate() {
+        let attrs: Vec<Attribute> = vec![parse_quote!(
+            #[cfg_attr(true, cfg_attr(all(unix, not(false)), foo))]
+        )];
+        let flattened = attrs.try_flattened_attributes().expect("valid attributes");
+        assert_eq!(flattened.len(), 1);
+        assert_eq!(
+            compact_tokens(nested_condition(&flattened[0])),
+            "all(true,all(unix,not(false)))"
+        );
+        let condition = flattened[0].parse_condition().unwrap().unwrap();
+        assert!(
+            condition.evaluate(|option| matches!(option, CfgOption::Flag(name) if name == "unix"))
+        );
+        assert!(!condition.evaluate(|_| false));
     }
 
     #[test]
