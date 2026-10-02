@@ -10,6 +10,8 @@
 and conditional attributes through one API without losing their guard
 conditions.
 
+Requires Rust 1.99 or newer (edition 2024).
+
 ## Example
 
 ```rust

@@ -7,7 +7,7 @@ use proc_macro2::{TokenStream, TokenTree, token_stream};
 /// `attr2` might contain complex tokens.
 pub struct CommaSplitter {
     input: token_stream::IntoIter,
-    current_buffer: Vec<TokenTree>,
+    current_buffer: TokenStream,
     depth: usize,
 }
 
@@ -15,7 +15,7 @@ impl CommaSplitter {
     pub fn new(tokens: TokenStream) -> Self {
         Self {
             input: tokens.into_iter(),
-            current_buffer: Vec::new(),
+            current_buffer: TokenStream::new(),
             depth: 0,
         }
     }
@@ -31,15 +31,14 @@ impl Iterator for CommaSplitter {
                     match &tt {
                         TokenTree::Punct(p) if p.as_char() == ',' && self.depth == 0 => {
                             // Split point found at top-level comma.
-                            let stream =
-                                TokenStream::from_iter(std::mem::take(&mut self.current_buffer));
+                            let stream = std::mem::take(&mut self.current_buffer);
                             return Some(stream);
                         },
                         TokenTree::Group(_g) => {
                             // Groups (parens, brackets, braces) contain their own token streams.
                             // We treat the entire group as a single token unit at this level,
                             // so we don't need to manually track depth for them.
-                            self.current_buffer.push(tt);
+                            self.current_buffer.extend([tt]);
                         },
                         TokenTree::Punct(p) => {
                             // Track angle brackets for proper handling of generics like `Type<A, B>`.
@@ -48,17 +47,16 @@ impl Iterator for CommaSplitter {
                             } else if p.as_char() == '>' {
                                 self.depth = self.depth.saturating_sub(1);
                             }
-                            self.current_buffer.push(tt);
+                            self.current_buffer.extend([tt]);
                         },
                         _ => {
-                            self.current_buffer.push(tt);
+                            self.current_buffer.extend([tt]);
                         },
                     }
                 },
                 None => {
                     if !self.current_buffer.is_empty() {
-                        let stream =
-                            TokenStream::from_iter(std::mem::take(&mut self.current_buffer));
+                        let stream = std::mem::take(&mut self.current_buffer);
                         return Some(stream);
                     } else {
                         return None;
