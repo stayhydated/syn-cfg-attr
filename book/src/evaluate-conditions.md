@@ -42,6 +42,7 @@ assert!(enabled);
 `CfgPredicate` supports:
 
 - bare identifier flags such as `unix`;
+- boolean literals `true` and `false`;
 - identifier and string-literal pairs such as `feature = "serde"`;
 - `all(...)` and `any(...)` predicate lists;
 - `not(...)` with exactly one predicate.
@@ -51,6 +52,11 @@ evaluator short-circuits `all(...)` at the first false predicate and `any(...)`
 at the first true predicate. `all()` evaluates to true and `any()` to false.
 Use the callback to answer configuration queries; it may visit only part of the
 predicate.
+
+Boolean literals normalize to empty predicate lists: `true` parses as
+`CfgPredicate::All(Vec::new())`, and `false` as `CfgPredicate::Any(Vec::new())`.
+They evaluate without invoking the callback. The raw `condition()` tokens still
+preserve the original literals, including inside combined nested guards.
 
 ## Preserve a guard without evaluating it
 

@@ -45,6 +45,9 @@ both direct and nested attributes.
 Nested guards combine as `all(parent, child)`. Use `condition()` to forward
 the guard as Rust tokens, or `parse_condition()` and `CfgPredicate::evaluate`
 to evaluate it against configuration supplied by your tool.
+Boolean guards `true` and `false` evaluate without querying the configuration
+callback. Their structured forms are empty `All` and `Any` lists, respectively;
+`condition()` preserves the original boolean tokens.
 
 The [complete example](examples/usage.rs) shows recursive expansion,
 condition evaluation, and error handling.
