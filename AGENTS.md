@@ -68,6 +68,9 @@ without modifying files. `.github/workflows/ci.yml` defines the merge checks; `j
 formatting commands that modify files. Report which checks ran and any failed
 or unavailable checks.
 
+Use actionlint 1.7.12 locally, matching CI's
+`rhysd/actionlint:1.7.12` container tag.
+
 `README.md` is not included in the crate's rustdoc, and `cargo doc` only renders
 documentation. Check README and book snippets separately with a fresh library
 build and explicit dependencies; `mdbook test -L` alone does not link these
