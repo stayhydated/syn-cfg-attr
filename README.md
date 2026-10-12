@@ -10,9 +10,14 @@
 and conditional attributes through one API without losing their guard
 conditions.
 
-Requires Rust 1.99 or newer (edition 2024).
+Requires Rust 1.99 or newer. Attribute values must come from `syn` 3, matching
+the crate's parser dependency. See the [API reference][api] for expansion and
+predicate semantics.
 
 ## Example
+
+This self-contained example filters direct and conditional `serde` attributes
+without evaluating their guards, then parses each list argument as `syn::Meta`.
 
 ```rust
 use syn::{Attribute, Meta, parse_quote};
@@ -42,22 +47,22 @@ and reports malformed nested entries as `syn::Error`. The returned
 `ExpandedAttr` values expose preserved conditions and parse list arguments for
 both direct and nested attributes.
 
-Nested guards combine as `all(parent, child)`. Use `condition()` to forward
-the guard as Rust tokens, or `parse_condition()` and `CfgPredicate::evaluate`
-to evaluate it against configuration supplied by your tool.
-Boolean guards `true` and `false` evaluate without querying the configuration
-callback. Their structured forms are empty `All` and `Any` lists, respectively;
-`condition()` preserves the original boolean tokens.
+Use `condition()` to forward preserved guards as Rust tokens, or
+`parse_condition()` and `CfgPredicate::evaluate` with configuration supplied by
+your tool. The best-effort `find_attribute` and `flattened_attributes` helpers
+skip malformed nested entries; prefer the fallible helpers when diagnostics
+matter.
 
 The [complete example][example] shows recursive expansion,
 condition evaluation, and error handling.
 
 [ci-badge]: https://github.com/stayhydated/syn-cfg-attr/actions/workflows/ci.yml/badge.svg?branch=master
 [ci]: https://github.com/stayhydated/syn-cfg-attr/actions/workflows/ci.yml
-[codecov-badge]: https://codecov.io/github/stayhydated/syn-cfg-attr/graph/badge.svg
+[codecov-badge]: https://codecov.io/github/stayhydated/syn-cfg-attr/graph/badge.svg?branch=master
 [codecov]: https://codecov.io/github/stayhydated/syn-cfg-attr
-[book-badge]: https://img.shields.io/badge/book-online-blue
+[book-badge]: https://img.shields.io/badge/Book-mdBook-blue
 [book]: https://stayhydated.github.io/syn-cfg-attr/book/
 [crate-badge]: https://img.shields.io/crates/v/syn-cfg-attr.svg?label=syn-cfg-attr
 [crate]: https://crates.io/crates/syn-cfg-attr
 [example]: https://github.com/stayhydated/syn-cfg-attr/blob/master/examples/usage.rs
+[api]: https://docs.rs/syn-cfg-attr/latest/syn_cfg_attr/
