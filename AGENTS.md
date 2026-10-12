@@ -63,9 +63,13 @@ Choose the check for the edited surface:
 | Site, sitemap, or llms assembly | `MDBOOK_BUILD__CREATE_MISSING=false just web-build`. |
 
 Use `just check`, `just test`, or `just clippy` when a change spans the workspace.
-`.github/workflows/ci.yml` defines the merge checks; `just ci` also runs
+`just quality` checks derive order, TOML, Markdown, spelling, workflows, and shell
+without modifying files. `.github/workflows/ci.yml` defines the merge checks; `just ci` also runs
 formatting commands that modify files. Report which checks ran and any failed
 or unavailable checks.
+
+Use actionlint 1.7.12 locally, matching CI's
+`rhysd/actionlint:1.7.12` container tag.
 
 `README.md` is not included in the crate's rustdoc, and `cargo doc` only renders
 documentation. Check README and book snippets separately with a fresh library
