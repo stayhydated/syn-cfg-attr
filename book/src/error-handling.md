@@ -43,6 +43,11 @@ Argument and condition parsing remain fallible after expansion:
 - `ExpandedAttr::parse_condition()` reports a preserved condition that is not a
   supported `CfgPredicate`.
 
+The argument parser must consume the entire list in both direct and nested
+attributes. For example, `parse_args::<syn::LitInt>()` rejects `foo(1, 2)` rather
+than returning only `1`; it also rejects `foo()`. For multiple arguments, use a
+type implementing `syn::parse::Parse` for your complete argument grammar.
+
 Expansion is not a complete Rust attribute validator. For example, both
 expansion modes produce an empty result for `#[cfg_attr()]`. Validate any
 additional syntax requirements in your consumer.
