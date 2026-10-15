@@ -726,29 +726,47 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_args_variants() {
-        use syn::LitInt;
+    fn test_parse_args_preserves_direct_and_nested_values() {
+        let attrs: Vec<Attribute> = vec![
+            parse_quote!(#[foo(42)]),
+            parse_quote!(#[cfg_attr(c, foo(42))]),
+        ];
+        let expanded = attrs.try_flattened_attributes().unwrap();
+        assert_eq!(expanded.len(), 2);
 
-        // 1. Direct List: #[foo(1)]
-        let attr1: Attribute = parse_quote!(#[foo(1)]);
-        let exp1 = ExpandedAttr::Direct(attr1);
-        assert!(exp1.parse_args::<LitInt>().is_ok());
+        for attr in expanded {
+            let value = attr.parse_args::<syn::LitInt>().unwrap();
+            assert_eq!(value.base10_parse::<u32>().unwrap(), 42);
+        }
+    }
 
-        // 2. Nested List: cfg_attr(..., foo(1))
-        let attr2: Attribute = parse_quote!(#[cfg_attr(c, foo(1))]);
-        let flattened = vec![attr2].flattened_attributes();
-        let exp2 = &flattened[0];
-        assert!(exp2.parse_args::<LitInt>().is_ok());
+    #[test]
+    fn test_parse_args_rejects_direct_and_nested_non_lists() {
+        let attrs: Vec<Attribute> = vec![
+            parse_quote!(#[foo]),
+            parse_quote!(#[foo = "bar"]),
+            parse_quote!(#[cfg_attr(c, foo, foo = "bar")]),
+        ];
+        let expanded = attrs.try_flattened_attributes().unwrap();
+        assert_eq!(expanded.len(), 4);
 
-        // 3. Nested NameValue: cfg_attr(..., foo = "bar")
-        let attr3: Attribute = parse_quote!(#[cfg_attr(c, foo = "bar")]);
-        let flattened3 = vec![attr3].flattened_attributes();
-        let exp3 = &flattened3[0];
-        assert!(exp3.parse_args::<syn::LitStr>().is_err());
+        for attr in expanded {
+            assert!(attr.parse_args::<syn::LitStr>().is_err());
+        }
+    }
 
-        // 4. Direct NameValue: #[foo = "bar"]
-        let attr4: Attribute = parse_quote!(#[foo = "bar"]);
-        let exp4 = ExpandedAttr::Direct(attr4);
-        assert!(exp4.parse_args::<syn::LitStr>().is_err());
+    #[test]
+    fn test_parse_args_requires_complete_direct_and_nested_arguments() {
+        let attrs: Vec<Attribute> = vec![
+            parse_quote!(#[foo(1, 2)]),
+            parse_quote!(#[foo()]),
+            parse_quote!(#[cfg_attr(c, foo(1, 2), foo())]),
+        ];
+        let expanded = attrs.try_flattened_attributes().unwrap();
+        assert_eq!(expanded.len(), 4);
+
+        for attr in expanded {
+            assert!(attr.parse_args::<syn::LitInt>().is_err());
+        }
     }
 }
