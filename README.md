@@ -10,7 +10,7 @@
 and conditional attributes through one API without losing their guard
 conditions.
 
-Requires Rust 1.99 or newer. Attribute values must come from `syn` 3, matching
+Requires Rust 1.100.0 or newer. Attribute values must come from `syn` 3, matching
 the crate's parser dependency. See the [API reference][api] for expansion and
 predicate semantics.
 
